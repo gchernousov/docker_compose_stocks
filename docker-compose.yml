@@ -1,0 +1,47 @@
+version: "3.9"
+
+volumes:
+    pgdata:
+    staticfiles:
+    
+networks:
+    stocks_net:
+
+services:
+    db:
+        container_name: stocks_db_postgres
+        image: postgres
+        volumes:
+            - ./postgresql.conf:/etc/postgresql.conf
+            - pgdata:/var/lib/postgresql/data
+            - ./logs:/var/log
+            - .:/docker-entrypoint-initdb.d
+        networks:
+            - stocks_net
+        ports:
+            - "5432:5432"
+        environment:
+            POSTGRES_DB: "stocks_db"
+            POSTGRES_USER: "admin"
+            POSTGRES_PASSWORD: "qwerty123"
+        restart: always
+    backend:
+        container_name: django_stocks
+        build: ./stocks_products_project
+        volumes:
+            - ./stocks_products_project:/app
+            - staticfiles:/app/static
+        networks:
+            - stocks_net
+        depends_on:
+            - db
+    nginx_s:
+        build: ./nginx
+        volumes:
+            - staticfiles:/app/static
+        networks:
+            - stocks_net
+        ports:
+            - "8000:80"
+        depends_on:
+            - backend
